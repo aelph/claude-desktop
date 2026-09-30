@@ -1,2 +1,6 @@
 debs/
 
+src/
+pkg/
+*.deb
+*.pkg.tar.*
