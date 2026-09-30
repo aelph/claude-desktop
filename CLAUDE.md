@@ -7,6 +7,7 @@ deb-пакета Claude Desktop из APT-репозитория Anthropic
 (`https://downloads.claude.ai/claude-desktop/apt/stable`). В AUR не публикуется.
 
 Отслеживаются только `PKGBUILD`, `update.sh`, `README.md`, `CLAUDE.md`,
+`.claude/settings.json`,
 `.gitignore` — всё остальное игнорируется через whitelist в `.gitignore`.
 Собранные пакеты намеренно накапливаются в корне — они нужны для отката.
 
@@ -25,3 +26,9 @@ deb-пакета Claude Desktop из APT-репозитория Anthropic
 - `chrome-sandbox` без SUID (изоляция через user namespaces).
 - После обновления версии сверять поле `Depends` из `control` нового deb с
   `depends` в PKGBUILD: могут появиться новые зависимости.
+
+## Коммиты
+
+Никаких строк соавторства и атрибуции в коммитах и PR: без `Co-Authored-By`,
+`Claude-Session` и ссылок на сессии. Это же задано в `.claude/settings.json`
+(`attribution`).

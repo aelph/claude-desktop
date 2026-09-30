@@ -6,3 +6,6 @@
 !update.sh
 !README.md
 !CLAUDE.md
+!.claude/
+.claude/*
+!.claude/settings.json
