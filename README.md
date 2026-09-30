@@ -37,7 +37,7 @@ makepkg -si
 
 ### Уведомления о новых версиях
 
-Ежедневная проверка — systemd-таймер пользователя. Юниты создаются в
+Ежедневная проверка в 12:00 — systemd-таймер пользователя. Юниты создаются в
 `~/.config/systemd/user/`; команды выполнять из каталога репозитория, чтобы
 `$PWD` указывал на него:
 
@@ -49,7 +49,7 @@ printf '%s\n' '[Unit]' 'Description=Проверка обновлений Claude
   > ~/.config/systemd/user/claude-desktop-update-check.service
 
 printf '%s\n' '[Unit]' 'Description=Ежедневная проверка обновлений Claude Desktop' '' \
-  '[Timer]' 'OnCalendar=daily' 'Persistent=true' 'RandomizedDelaySec=1h' '' \
+  '[Timer]' 'OnCalendar=*-*-* 12:00:00' 'Persistent=true' '' \
   '[Install]' 'WantedBy=timers.target' \
   > ~/.config/systemd/user/claude-desktop-update-check.timer
 
