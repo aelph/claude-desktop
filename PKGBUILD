@@ -37,7 +37,7 @@ optdepends=(
 options=('!strip' '!debug')
 _repo='https://downloads.claude.ai/claude-desktop/apt/stable'
 source_x86_64=("${pkgname}_${pkgver}_amd64.deb::${_repo}/pool/main/c/${pkgname}/${pkgname}_${pkgver}_amd64.deb")
-sha256sums_x86_64=('SKIP')
+sha256sums_x86_64=('3cfddb23bf2911e05e27b4ed3856b8e795df94643b2c35b59deb317cf995bca0')
 
 prepare() {
   mkdir -p data
