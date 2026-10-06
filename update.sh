@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Обновление пакета claude-desktop из официального APT-репозитория Anthropic.
 #
-#   ./update.sh            — проверить, собрать, установить, закоммитить
+#   ./update.sh            — pull, проверить, собрать, установить, закоммитить, push
 #   ./update.sh check      — только проверить наличие новой версии
 #   ./update.sh notify     — тихая проверка с уведомлением на рабочий стол (для systemd-таймера)
 #   ./update.sh rollback   — показать локальные сборки для отката
@@ -73,6 +73,9 @@ notify)
     ;;
 
 update)
+    # Сначала забрать изменения с другой машины: при расхождении
+    # истории скрипт остановится, слияние — вручную.
+    git pull --ff-only
     cur=$(current_version)
     entry=$(latest_entry) || true
     new=${entry%% *}; sum=${entry##* }
@@ -99,6 +102,7 @@ update)
     git add PKGBUILD
     git commit -m "Update $new"
     sudo pacman -U "${PKGNAME}-${new}-1-x86_64.pkg.tar.zst"
+    git push
     echo "Готово: установлена версия $new."
     ;;
 
