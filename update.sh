@@ -102,14 +102,17 @@ update)
     fi
     echo "Обновление $cur -> $new"
     # Контрольная сумма берётся из индекса репозитория, updpkgsums не нужен.
-    sed -i -e "s/^pkgver=.*/pkgver=$new/" \
-           -e "s/^pkgrel=.*/pkgrel=1/" \
-           -e "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('$sum')/" PKGBUILD
+    # Если PKGBUILD этой версии уже подтянут с другой машины, pkgrel не трогаем.
+    if [[ $(grep -oP '(?<=^pkgver=).*' PKGBUILD) != "$new" ]]; then
+        sed -i -e "s/^pkgver=.*/pkgver=$new/" -e "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+    fi
+    sed -i "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('$sum')/" PKGBUILD
     makepkg -f
     git add PKGBUILD
     # Если версия уже подтянута с другой машины, коммитить нечего.
     git diff --cached --quiet || git commit -m "Update $new"
-    sudo pacman -U "${PKGNAME}-${new}-1-x86_64.pkg.tar.zst"
+    pkgrel=$(grep -oP '(?<=^pkgrel=).*' PKGBUILD)
+    sudo pacman -U "${PKGNAME}-${new}-${pkgrel}-x86_64.pkg.tar.zst"
     # Отправить коммит сразу, чтобы другие машины подтянули его, а не создали свой.
     git push -q || echo "Предупреждение: git push не удался, выполните его вручную." >&2
     echo "Готово: установлена версия $new."
