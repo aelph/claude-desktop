@@ -107,9 +107,11 @@ update)
            -e "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('$sum')/" PKGBUILD
     makepkg -f
     git add PKGBUILD
-    git commit -m "Update $new"
+    # Если версия уже подтянута с другой машины, коммитить нечего.
+    git diff --cached --quiet || git commit -m "Update $new"
     sudo pacman -U "${PKGNAME}-${new}-1-x86_64.pkg.tar.zst"
-    git push
+    # Отправить коммит сразу, чтобы другие машины подтянули его, а не создали свой.
+    git push -q || echo "Предупреждение: git push не удался, выполните его вручную." >&2
     echo "Готово: установлена версия $new."
     ;;
 
