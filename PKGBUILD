@@ -2,7 +2,7 @@
 # Repackaged from Anthropic's official Debian package.
 
 pkgname=claude-desktop
-pkgver=2.19675.1
+pkgver=2.26454.0
 pkgrel=1
 pkgdesc='Desktop application for Claude.ai (official build, repackaged from .deb)'
 arch=('x86_64')
@@ -37,7 +37,7 @@ optdepends=(
 options=('!strip' '!debug')
 _repo='https://downloads.claude.ai/claude-desktop/apt/stable'
 source_x86_64=("${pkgname}_${pkgver}_amd64.deb::${_repo}/pool/main/c/${pkgname}/${pkgname}_${pkgver}_amd64.deb")
-sha256sums_x86_64=('9ba127eeccf270f6e60d35f5c5333654053bf0540c88fc82a009d01711b106fc')
+sha256sums_x86_64=('6d3e4973dcb11511ddd962040b3073b435d1592b3174a82ef52e50377a75a63f')
 
 prepare() {
   mkdir -p data
