@@ -9,7 +9,9 @@ deb-пакета Anthropic без пересборки. Пакет локаль�
   `https://downloads.claude.ai/claude-desktop/apt/stable` и копирует его `/usr`
   как есть: приложение со встроенным Electron в `/usr/lib/claude-desktop`,
   `/usr/bin/claude-desktop`, ярлык и иконки.
-- Зависимости Debian переведены на имена пакетов Arch.
+- Зависимости Debian переведены на имена пакетов Arch. `bubblewrap` и `socat`
+  в deb лишь рекомендуются, но без них не запускается песочница Claude Code,
+  поэтому здесь они обязательны.
 - Из действий `postinst` оставлена только регистрация поиска GNOME Shell.
   Подключение APT-репозитория и профиль AppArmor в Arch не нужны.
 - С `chrome-sandbox` снят бит SUID: ядра Arch/Manjaro разрешают
@@ -67,3 +69,8 @@ systemctl --user enable --now claude-desktop-update-check.timer
 Для неё нужны необязательные зависимости пакета (`qemu-system-x86`,
 `edk2-ovmf`), членство пользователя в группе `kvm` и модуль ядра
 `vhost_vsock`. Остальные функции приложения работают и без этого.
+
+Приложение ищет компоненты виртуальной машины по путям Debian, поэтому пакет
+добавляет символические ссылки: `/usr/bin/virtiofsd` на `/usr/lib/virtiofsd`
+и `/usr/share/edk2/OVMF_CODE_4M.fd`, `OVMF_VARS_4M.fd` на прошивку из `x64/`
+(`/usr/share/OVMF` в `edk2-ovmf` указывает на `/usr/share/edk2`).
