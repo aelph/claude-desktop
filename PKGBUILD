@@ -11,6 +11,7 @@ license=('LicenseRef-Anthropic')
 depends=(
   'alsa-lib'
   'at-spi2-core'
+  'bubblewrap'
   'glib2'
   'glibc'
   'gtk3'
@@ -21,11 +22,14 @@ depends=(
   'libxtst'
   'mesa'
   'nss'
+  'socat'
   'util-linux-libs'
   'xdg-desktop-portal'
   'xdg-desktop-portal-impl'
   'xdg-utils'
 )
+# bubblewrap and socat are only "Recommends:" in the deb, but the Claude Code
+# sandbox on Linux cannot start without them, so they are hard dependencies.
 optdepends=(
   'libayatana-appindicator: tray icon'
   'kwallet: secret storage on KDE Plasma'
@@ -66,4 +70,14 @@ package() {
     -t "$pkgdir/usr/share/gnome-shell/search-providers/"
   install -Dm644 "$_sp/com.anthropic.Claude.SearchProvider.service" \
     -t "$pkgdir/usr/share/dbus-1/services/"
+
+  # Cowork hardcodes Debian paths for the VM stack. virtiofsd: the app
+  # looks in /usr/libexec and /usr/bin, Arch installs it to /usr/lib.
+  ln -s ../lib/virtiofsd "$pkgdir/usr/bin/virtiofsd"
+  # UEFI firmware: the app opens /usr/share/OVMF/OVMF_CODE_4M.fd; on Arch
+  # /usr/share/OVMF is a symlink to /usr/share/edk2 (edk2-ovmf), where the
+  # firmware lives in x64/ under different names.
+  install -d "$pkgdir/usr/share/edk2"
+  ln -s x64/OVMF_CODE.4m.fd "$pkgdir/usr/share/edk2/OVMF_CODE_4M.fd"
+  ln -s x64/OVMF_VARS.4m.fd "$pkgdir/usr/share/edk2/OVMF_VARS_4M.fd"
 }
