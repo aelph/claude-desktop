@@ -6,6 +6,8 @@
 #   ./update.sh notify     — тихая проверка с уведомлением на рабочий стол (для systemd-таймера)
 #   ./update.sh rollback   — показать локальные сборки для отката
 #   ./update.sh rollback <версия> — установить указанную локальную сборку
+#
+# Код возврата 11 у check и update — новая версия опубликована битой (см. release_ok).
 
 set -euo pipefail
 cd "$(dirname "$0")"
@@ -13,25 +15,34 @@ cd "$(dirname "$0")"
 INDEX="https://downloads.claude.ai/claude-desktop/apt/stable/dists/stable/main/binary-amd64/Packages"
 PKGNAME="claude-desktop"
 
+# Защита от битых релизов, общая для update.sh в yandex-music-pkg, max-bin и claude-desktop.
+# 20.10.2026 Яндекс опубликовал Яндекс Музыку 5.124.1, чей deb весил 96 байт: в ar-архиве лежал только пустой индекс «__.SYMDEF SORTED», без control.tar и data.tar. Фид указывал именно этот размер и контрольную сумму именно этого файла, поэтому проверка суммы релиз пропустила, а сборка упала на распаковке.
+# Настоящие сборки всех трёх программ весят десятки и сотни мегабайт, поэтому размер пакета из метаданных источника сверяется с порогом в 1 МиБ. Релиз меньше порога или без указанного размера считается битым: check и update сообщают о нём и выходят с кодом 11, notify молчит до тех пор, пока издатель не перевыпустит пакет.
+MIN_SIZE=$((1024 * 1024))
+
+release_ok() {
+    [[ "${1:-}" =~ ^[0-9]+$ ]] && (( $1 >= MIN_SIZE ))
+}
+
+broken_release() {
+    echo "Версия $1 опубликована битой (размер пакета: ${2:-не указан} байт), обновление пропущено." >&2
+    exit 11
+}
+
 latest_entry() {
     # Индекс APT: абзацы «Поле: значение», разделённые пустой строкой.
-    # Выводит «версия sha256» самой свежей версии пакета.
+    # Выводит «версия sha256 размер» самой свежей версии пакета.
     curl -fsSL "$INDEX" | awk -v RS= -v FS='\n' '
         {
-            p = v = s = ""
+            p = v = s = z = ""
             for (i = 1; i <= NF; i++) {
                 if ($i ~ /^Package: /) p = substr($i, 10)
                 else if ($i ~ /^Version: /) v = substr($i, 10)
                 else if ($i ~ /^SHA256: /) s = substr($i, 9)
+                else if ($i ~ /^Size: /) z = substr($i, 7)
             }
-            if (p == "'"$PKGNAME"'" && v != "" && s != "") print v, s
+            if (p == "'"$PKGNAME"'" && v != "" && s != "") print v, s, z
         }' | sort -V -k1,1 | tail -1
-}
-
-latest_version() {
-    local e
-    e=$(latest_entry) || return 1
-    printf '%s\n' "${e%% *}"
 }
 
 current_version() {
@@ -48,10 +59,12 @@ cmd="${1:-update}"
 
 case "$cmd" in
 check)
-    cur=$(current_version); new=$(latest_version)
+    cur=$(current_version); entry=$(latest_entry)
+    read -r new _ size <<<"$entry"
     echo "Установленная версия: $cur"
     echo "Версия в APT-репо:    $new"
     if [[ $(vercmp "$new" "$cur") -gt 0 ]]; then
+        release_ok "$size" || broken_release "$new" "$size"
         echo "Доступно обновление. Запустите: ./update.sh"
         exit 10
     else
@@ -65,14 +78,16 @@ notify)
     # Persistent=true запускает пропущенную проверку сразу после загрузки,
     # когда сети может ещё не быть: повторять попытки до 5 минут.
     cur=$(current_version)
-    new=""
+    entry=""
     for _ in {1..10}; do
-        new=$(latest_version 2>/dev/null) && [[ -n "$new" ]] && break
-        new=""
+        entry=$(latest_entry 2>/dev/null) && [[ -n "$entry" ]] && break
+        entry=""
         sleep 30
     done
-    [[ -n "$new" ]] || exit 0
-    if [[ $(vercmp "$new" "$cur") -gt 0 ]]; then
+    [[ -n "$entry" ]] || exit 0
+    read -r new _ size <<<"$entry"
+    # О битом релизе не уведомляем: обновиться на него всё равно нельзя.
+    if [[ $(vercmp "$new" "$cur") -gt 0 ]] && release_ok "$size"; then
         notify-send -a "Claude" -i claude-desktop -u critical \
             "Вышло обновление Claude Desktop $new" \
             "Установлена версия $cur. Для обновления запустите: $(pwd)/update.sh"
@@ -85,8 +100,8 @@ update)
     git pull --ff-only
     cur=$(current_version)
     entry=$(latest_entry) || true
-    new=${entry%% *}; sum=${entry##* }
-    if [[ -z "$entry" || "$new" == "$sum" ]]; then
+    read -r new sum size <<<"$entry"
+    if [[ -z "$entry" || -z "$sum" ]]; then
         echo "Не удалось прочитать индекс репозитория." >&2
         exit 1
     fi
@@ -94,6 +109,7 @@ update)
         echo "Уже актуальная версия: $cur"
         exit 0
     fi
+    release_ok "$size" || broken_release "$new" "$size"
     # Имя .deb в PKGBUILD собирается из pkgver, поэтому версия Debian
     # должна подходить для pkgver без преобразований.
     if [[ ! "$new" =~ ^[0-9][0-9.]*$ ]]; then
